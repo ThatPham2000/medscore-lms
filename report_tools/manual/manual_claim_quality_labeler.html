@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Claim Quality Labeler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .stats {
+            margin-top: 15px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .stat-item .label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .stat-item .value {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .claims-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .claim-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .claim-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .claim-card.evaluated {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .claim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .claim-id {
+            font-size: 12px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .claim-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid #2196F3;
+        }
+
+        .context-section {
+            margin-bottom: 15px;
+        }
+
+        .context-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .context-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .sentence-section {
+            margin-bottom: 15px;
+        }
+
+        .sentence-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .sentence-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            border-left: 3px solid #ffc107;
+        }
+
+        .other-claims-section {
+            margin-bottom: 15px;
+        }
+
+        .other-claims-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .other-claims-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .other-claims-list li {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .quality-section {
+            margin-top: 15px;
+        }
+
+        .quality-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .quality-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .quality-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .quality-option:hover {
+            border-color: #2196F3;
+            background: #f0f7ff;
+        }
+
+        .quality-option input[type="radio"] {
+            margin-right: 10px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .quality-option label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .quality-option.selected {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .current-label {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1976d2;
+        }
+
+        .current-label strong {
+            color: #0d47a1;
+        }
+
+        .info-section {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid #9c27b0;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .info-content {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .raw-response-text {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #555;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+
+        .export-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .export-button:hover:not(:disabled) {
+            background: #45a049;
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .export-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible::before {
+            content: '▼ ';
+            display: inline-block;
+            transition: transform 0.3s;
+            margin-right: 5px;
+        }
+
+        .collapsible.collapsed::before {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Manual Claim Quality Labeler</h1>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".jsonl" />
+                <span id="fileName" style="color: #666; font-size: 14px;">No file loaded</span>
+            </div>
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-item">
+                    <span class="label">Total Claims:</span>
+                    <span class="value" id="totalClaims">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Evaluated:</span>
+                    <span class="value" id="evaluatedClaims">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Remaining:</span>
+                    <span class="value" id="remainingClaims">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="claims-container" id="claimsContainer">
+            <div class="empty-state">
+                <h2>No data loaded</h2>
+                <p>Please load a JSONL file to start labeling claims.</p>
+            </div>
+        </div>
+    </div>
+
+    <button class="export-button" id="exportButton" disabled>Export Results</button>
+
+    <script>
+        let claimsData = [];
+        const qualityTypes = [
+            'Valid',
+            'Unverifiable',
+            'Incorrectly structured',
+            'Context-dependent',
+            'Hallucinated',
+            'Incomplete',
+            'Redundant'
+        ];
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const lines = event.target.result.split('\n').filter(line => line.trim());
+                    claimsData = lines.map((line, index) => {
+                        const data = JSON.parse(line);
+                        // Initialize manual_claim_quality_type if not present
+                        if (!data.hasOwnProperty('manual_claim_quality_type')) {
+                            data.manual_claim_quality_type = null;
+                        }
+                        data._index = index; // Store original index
+                        return data;
+                    });
+                    renderClaims();
+                    updateStats();
+                } catch (error) {
+                    alert('Error parsing JSONL file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function renderClaims() {
+            const container = document.getElementById('claimsContainer');
+            
+            if (claimsData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h2>No data loaded</h2><p>Please load a JSONL file to start labeling claims.</p></div>';
+                return;
+            }
+
+            container.innerHTML = claimsData.map((claim, index) => {
+                const isEvaluated = claim.manual_claim_quality_type !== null;
+                const currentLabel = claim.claim_quality_type || 'Not labeled';
+                
+                return `
+                    <div class="claim-card ${isEvaluated ? 'evaluated' : ''}" data-index="${index}">
+                        <div class="claim-header">
+                            <div>
+                                <span class="claim-id">ID: ${claim.id ?? 'N/A'} | Sentence ID: ${claim.sentence_id ?? 'N/A'} | Claim ID: ${claim.claim_id ?? 'N/A'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="claim-text">
+                            <strong>Claim:</strong> ${escapeHtml(claim.claim || 'N/A')}
+                        </div>
+
+                        <div class="sentence-section">
+                            <div class="sentence-label">Original Sentence:</div>
+                            <div class="sentence-text">${escapeHtml(claim.sentence || 'N/A')}</div>
+                        </div>
+
+                        ${claim.context ? `
+                            <div class="context-section">
+                                <div class="collapsible" onclick="toggleCollapse(this)">
+                                    <span class="context-label">Context (Click to expand/collapse)</span>
+                                </div>
+                                <div class="collapsible-content">
+                                    <div class="context-text">${escapeHtml(claim.context)}</div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${claim.other_claims && claim.other_claims.length > 0 ? `
+                            <div class="other-claims-section">
+                                <div class="other-claims-label">Other Claims from Same Sentence:</div>
+                                <ul class="other-claims-list">
+                                    ${claim.other_claims.map(oc => `<li>${escapeHtml(oc)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        <div class="quality-section">
+                            <div class="quality-label">Select Claim Quality Type:</div>
+                            <div class="quality-options">
+                                ${qualityTypes.map(type => `
+                                    <div class="quality-option ${claim.manual_claim_quality_type === type ? 'selected' : ''}" 
+                                         onclick="selectQuality(${index}, '${type}')">
+                                        <input type="radio" 
+                                               name="quality_${index}" 
+                                               id="quality_${index}_${type}" 
+                                               value="${type}"
+                                               ${claim.manual_claim_quality_type === type ? 'checked' : ''}
+                                               onchange="selectQuality(${index}, '${type}')">
+                                        <label for="quality_${index}_${type}">${type}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="info-section">
+                                ${claim.claim_quality_type ? `
+                                    <div class="info-item">
+                                        <div class="info-label">Current Label:</div>
+                                        <div class="info-content"><strong>${escapeHtml(claim.claim_quality_type)}</strong></div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${claim.other_claims && claim.other_claims.length > 0 ? `
+                                    <div class="info-item">
+                                        <div class="info-label">Other Claims:</div>
+                                        <div class="info-content">
+                                            <ul class="other-claims-list" style="margin-top: 5px;">
+                                                ${claim.other_claims.map(oc => `<li>${escapeHtml(oc)}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${claim.raw_claim_quality_response ? `
+                                    <div class="info-item">
+                                        <div class="collapsible" onclick="toggleCollapse(this)">
+                                            <span class="info-label">Raw Claim Quality Response (Click to expand/collapse)</span>
+                                        </div>
+                                        <div class="collapsible-content collapsed">
+                                            <div class="raw-response-text">${escapeHtml(claim.raw_claim_quality_response)}</div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectQuality(index, qualityType) {
+            claimsData[index].manual_claim_quality_type = qualityType;
+            renderClaims();
+            updateStats();
+        }
+
+        function toggleCollapse(element) {
+            element.classList.toggle('collapsed');
+            const content = element.nextElementSibling;
+            content.classList.toggle('collapsed');
+        }
+
+        function updateStats() {
+            const total = claimsData.length;
+            const evaluated = claimsData.filter(c => c.manual_claim_quality_type !== null).length;
+            const remaining = total - evaluated;
+
+            document.getElementById('totalClaims').textContent = total;
+            document.getElementById('evaluatedClaims').textContent = evaluated;
+            document.getElementById('remainingClaims').textContent = remaining;
+            document.getElementById('stats').style.display = 'flex';
+
+            // Enable/disable export button
+            const exportButton = document.getElementById('exportButton');
+            if (total > 0) {
+                exportButton.disabled = false;
+            } else {
+                exportButton.disabled = true;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Export handler
+        document.getElementById('exportButton').addEventListener('click', function() {
+            if (claimsData.length === 0) return;
+
+            // Create export data with manual_claim_quality_type
+            const exportData = claimsData.map(claim => {
+                const exportClaim = { ...claim };
+                // Remove internal index
+                delete exportClaim._index;
+                return exportClaim;
+            });
+
+            // Convert to JSONL format
+            const jsonlContent = exportData.map(claim => JSON.stringify(claim)).join('\n');
+
+            // Create download
+            const blob = new Blob([jsonlContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manual_claim_quality_evaluations.jsonl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>

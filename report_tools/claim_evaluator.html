@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedScore Claim Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .file-input-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .response-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .response-header {
+            background: #007bff;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .claim-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .claim-item:last-child {
+            border-bottom: none;
+        }
+
+        .claim-text {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #555;
+        }
+
+        .sentence-text {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+
+        .claim-content {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .score-display {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .score-display.low {
+            background: #dc3545;
+        }
+
+        .score-display.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .evidence-text {
+            background: #d1ecf1;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 4px solid #0c5460;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+
+        .model-response {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .radio-option input[type="radio"] {
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            cursor: pointer;
+            font-weight: normal;
+            color: #333;
+        }
+
+        .stats {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .floating-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .floating-button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        .floating-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MedScore Claim Evaluator</h1>
+
+        <div class="file-input-container">
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".jsonl" />
+                <button onclick="loadFile()">Load JSONL File</button>
+            </div>
+            <div id="fileStatus" class="warning hidden">Please load a JSONL file to begin evaluation.</div>
+        </div>
+
+        <div id="statsContainer" class="stats hidden">
+            <div class="stat-item">
+                <div class="stat-value" id="totalResponses">0</div>
+                <div class="stat-label">Total Responses</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalClaims">0</div>
+                <div class="stat-label">Total Claims</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="evaluatedClaims">0</div>
+                <div class="stat-label">Evaluated Claims</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="completionRate">0%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+
+        <div id="contentContainer"></div>
+
+        <div class="error" id="errorMessage"></div>
+        <div class="success-message" id="successMessage">
+            File exported successfully! Check your downloads folder.
+        </div>
+    </div>
+
+    <button class="floating-button" id="exportButton" onclick="exportToJSONL()" style="display: none;">
+        Export to JSONL
+    </button>
+
+    <script>
+        let data = [];
+
+        const taxonomyOptions = [
+            'valid',
+            'unverifiable',
+            'hallucinated',
+            'incomplete',
+            'incorrect-structure',
+            'context-dependent',
+            'redundant',
+            'omitted'
+        ];
+
+        function loadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const lines = e.target.result.split('\n').filter(line => line.trim());
+                    data = lines.map(line => JSON.parse(line));
+                    
+                    document.getElementById('fileStatus').classList.add('hidden');
+                    document.getElementById('contentContainer').innerHTML = '';
+                    document.getElementById('exportButton').style.display = 'block';
+                    document.getElementById('statsContainer').classList.remove('hidden');
+                    
+                    renderData();
+                    updateStats();
+                    checkExportButton();
+                } catch (error) {
+                    alert('Error parsing JSONL file: ' + error.message);
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderData() {
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = '';
+
+            data.forEach((response, responseIndex) => {
+                const responseCard = document.createElement('div');
+                responseCard.className = 'response-card';
+                
+                const header = document.createElement('div');
+                header.className = 'response-header';
+                header.textContent = `Response ID: ${response.id}`;
+                responseCard.appendChild(header);
+
+                if (!response.claims || response.claims.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'claim-item';
+                    emptyMsg.textContent = 'No claims found for this response.';
+                    responseCard.appendChild(emptyMsg);
+                } else {
+                    response.claims.forEach((claim, claimIndex) => {
+                        const claimItem = document.createElement('div');
+                        claimItem.className = 'claim-item';
+                        
+                        // Sentence
+                        const sentenceLabel = document.createElement('div');
+                        sentenceLabel.className = 'label';
+                        sentenceLabel.textContent = 'Sentence:';
+                        claimItem.appendChild(sentenceLabel);
+                        
+                        const sentenceText = document.createElement('div');
+                        sentenceText.className = 'sentence-text';
+                        sentenceText.textContent = claim.sentence || '';
+                        claimItem.appendChild(sentenceText);
+                        
+                        // Claim
+                        const claimLabel = document.createElement('div');
+                        claimLabel.className = 'label';
+                        claimLabel.textContent = 'Claim:';
+                        claimItem.appendChild(claimLabel);
+                        
+                        const claimContent = document.createElement('div');
+                        claimContent.className = 'claim-content';
+                        claimContent.textContent = claim.claim || '';
+                        claimItem.appendChild(claimContent);
+                        
+                        // Score display
+                        if (claim.score !== undefined && claim.score !== null) {
+                            const scoreDisplay = document.createElement('div');
+                            scoreDisplay.className = 'score-display';
+                            const scoreValue = typeof claim.score === 'number' ? claim.score.toFixed(2) : claim.score;
+                            
+                            // Color code based on score
+                            if (typeof claim.score === 'number') {
+                                if (claim.score >= 0.7) {
+                                    scoreDisplay.className = 'score-display';
+                                } else if (claim.score >= 0.4) {
+                                    scoreDisplay.className = 'score-display medium';
+                                } else {
+                                    scoreDisplay.className = 'score-display low';
+                                }
+                            }
+                            
+                            scoreDisplay.textContent = `Score: ${scoreValue}`;
+                            claimItem.appendChild(scoreDisplay);
+                        }
+                        
+                        // Evidence (if available)
+                        if (claim.evidence) {
+                            const evidenceLabel = document.createElement('div');
+                            evidenceLabel.className = 'label';
+                            evidenceLabel.textContent = 'Evidence:';
+                            claimItem.appendChild(evidenceLabel);
+                            
+                            const evidenceText = document.createElement('div');
+                            evidenceText.className = 'evidence-text';
+                            evidenceText.textContent = claim.evidence;
+                            claimItem.appendChild(evidenceText);
+                        }
+                        
+                        // Model response (if available)
+                        if (claim.model_response) {
+                            const modelLabel = document.createElement('div');
+                            modelLabel.className = 'label';
+                            modelLabel.textContent = 'Model Response:';
+                            claimItem.appendChild(modelLabel);
+                            
+                            const modelResponse = document.createElement('div');
+                            modelResponse.className = 'model-response';
+                            modelResponse.textContent = claim.model_response;
+                            claimItem.appendChild(modelResponse);
+                        }
+                        
+                        // Manual evaluation radio buttons
+                        const evaluationLabel = document.createElement('div');
+                        evaluationLabel.className = 'label';
+                        evaluationLabel.textContent = 'Manual Evaluation (MedScore Taxonomy):';
+                        claimItem.appendChild(evaluationLabel);
+                        
+                        const radioGroup = document.createElement('div');
+                        radioGroup.className = 'radio-group';
+                        
+                        taxonomyOptions.forEach(option => {
+                            const radioOption = document.createElement('div');
+                            radioOption.className = 'radio-option';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = `evaluation_${responseIndex}_${claimIndex}`;
+                            radio.value = option;
+                            radio.id = `radio_${responseIndex}_${claimIndex}_${option}`;
+                            
+                            // Restore saved evaluation if exists
+                            if (claim.manual === option) {
+                                radio.checked = true;
+                            }
+                            
+                            radio.addEventListener('change', function() {
+                                updateEvaluation(responseIndex, claimIndex, option);
+                                updateStats();
+                                checkExportButton();
+                            });
+                            
+                            const label = document.createElement('label');
+                            label.htmlFor = `radio_${responseIndex}_${claimIndex}_${option}`;
+                            label.textContent = option.charAt(0).toUpperCase() + option.slice(1);
+                            
+                            radioOption.appendChild(radio);
+                            radioOption.appendChild(label);
+                            radioGroup.appendChild(radioOption);
+                        });
+                        
+                        claimItem.appendChild(radioGroup);
+                        responseCard.appendChild(claimItem);
+                    });
+                }
+                
+                container.appendChild(responseCard);
+            });
+        }
+
+        function updateEvaluation(responseIndex, claimIndex, value) {
+            if (data[responseIndex] && data[responseIndex].claims && data[responseIndex].claims[claimIndex]) {
+                data[responseIndex].claims[claimIndex].manual = value;
+            }
+        }
+
+        function updateStats() {
+            const totalResponses = data.length;
+            let totalClaims = 0;
+            let evaluatedClaims = 0;
+            
+            data.forEach(response => {
+                if (response.claims) {
+                    totalClaims += response.claims.length;
+                    response.claims.forEach(claim => {
+                        if (claim.manual) {
+                            evaluatedClaims++;
+                        }
+                    });
+                }
+            });
+            
+            const completionRate = totalClaims > 0 ? Math.round((evaluatedClaims / totalClaims) * 100) : 0;
+            
+            document.getElementById('totalResponses').textContent = totalResponses;
+            document.getElementById('totalClaims').textContent = totalClaims;
+            document.getElementById('evaluatedClaims').textContent = evaluatedClaims;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+        }
+
+        function checkExportButton() {
+            const exportButton = document.getElementById('exportButton');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Check if all claims have manual evaluations
+            let missingEvaluations = [];
+            
+            data.forEach((response, responseIndex) => {
+                if (response.claims) {
+                    response.claims.forEach((claim, claimIndex) => {
+                        if (!claim.manual) {
+                            missingEvaluations.push({
+                                responseId: response.id,
+                                responseIndex: responseIndex,
+                                claimIndex: claimIndex
+                            });
+                        }
+                    });
+                }
+            });
+            
+            if (missingEvaluations.length > 0) {
+                exportButton.disabled = true;
+                exportButton.style.opacity = '0.6';
+                
+                // Show error message if user tried to export
+                if (errorMessage.classList.contains('show')) {
+                    const missingCount = missingEvaluations.length;
+                    errorMessage.textContent = `Cannot export: ${missingCount} claim${missingCount > 1 ? 's' : ''} still need${missingCount === 1 ? 's' : ''} manual evaluation. Please evaluate all claims before exporting.`;
+                }
+            } else {
+                exportButton.disabled = false;
+                exportButton.style.opacity = '1';
+                errorMessage.classList.remove('show');
+            }
+        }
+
+        function exportToJSONL() {
+            // Check if all evaluations are complete
+            let missingEvaluations = [];
+            
+            data.forEach((response, responseIndex) => {
+                if (response.claims) {
+                    response.claims.forEach((claim, claimIndex) => {
+                        if (!claim.manual) {
+                            missingEvaluations.push({
+                                responseId: response.id,
+                                responseIndex: responseIndex,
+                                claimIndex: claimIndex
+                            });
+                        }
+                    });
+                }
+            });
+            
+            if (missingEvaluations.length > 0) {
+                const errorMessage = document.getElementById('errorMessage');
+                const missingCount = missingEvaluations.length;
+                errorMessage.textContent = `Cannot export: ${missingCount} claim${missingCount > 1 ? 's' : ''} still need${missingCount === 1 ? 's' : ''} manual evaluation. Please evaluate all claims before exporting.`;
+                errorMessage.classList.add('show');
+                
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                // Hide error message after 5 seconds
+                setTimeout(() => {
+                    errorMessage.classList.remove('show');
+                }, 5000);
+                
+                return;
+            }
+            // Prepare output data
+            const outputData = data.map(response => {
+                const outputResponse = {
+                    id: response.id,
+                    claims: []
+                };
+                
+                if (response.claims) {
+                    outputResponse.claims = response.claims.map(claim => {
+                        const outputClaim = {
+                            sentence: claim.sentence,
+                            claim: claim.claim
+                        };
+                        
+                        // Include all existing fields
+                        if (claim.model_response) outputClaim.model_response = claim.model_response;
+                        if (claim.evidence) outputClaim.evidence = claim.evidence;
+                        if (claim.raw !== undefined) outputClaim.raw = claim.raw;
+                        if (claim.score !== undefined) outputClaim.score = claim.score;
+                        
+                        // Add manual evaluation if available
+                        if (claim.manual) {
+                            outputClaim.manual = claim.manual;
+                        }
+                        
+                        return outputClaim;
+                    });
+                }
+                
+                // Include score if present
+                if (response.score !== undefined) {
+                    outputResponse.score = response.score;
+                }
+                
+                return outputResponse;
+            });
+            
+            // Convert to JSONL format
+            const jsonlContent = outputData.map(item => JSON.stringify(item)).join('\n');
+            
+            // Create download
+            const blob = new Blob([jsonlContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'medscore_manual_evaluations.jsonl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.classList.remove('show');
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        // Allow drag and drop
+        const fileInput = document.getElementById('fileInput');
+        const fileInputContainer = document.querySelector('.file-input-container');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileInputContainer.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileInputContainer.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileInputContainer.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            fileInputContainer.style.background = '#e3f2fd';
+        }
+
+        function unhighlight(e) {
+            fileInputContainer.style.background = 'white';
+        }
+
+        fileInputContainer.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0 && files[0].name.endsWith('.jsonl')) {
+                fileInput.files = files;
+                loadFile();
+            } else {
+                alert('Please drop a .jsonl file');
+            }
+        }
+    </script>
+</body>
+</html>
+
