@@ -210,7 +210,7 @@ def parse_args():
 
     # Decomposition
     parser.add_argument("--decomposition_mode", type=str,
-                        choices=["small_llm", "medscore", "factscore", "dndscore", "custom"],
+                        choices=["small_llm", "medscore", "factscore"],
                         default="small_llm", help="Decomposition mode")
     parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openai"],
                         default="ollama", help="LLM provider for decomposition")
