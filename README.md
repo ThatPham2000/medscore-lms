@@ -7,7 +7,7 @@
 
 ## Abstract
 
-Decompose-then-verify is a standard paradigm for evaluating factuality in long-form generation, but in free-form medical answers the final score is often dominated by claim decomposition quality—small models frequently produce taxonomy-violating claims (e.g., context-dependent or incomplete), which then injects noise into verification and makes scores unstable. Building on **[MedScore](https://arxiv.org/abs/2505.18452)**’s medical decomposition taxonomy, we propose MedScore-LMS, a lightweight extension designed for enterprise-friendly, self-hosted small language models: it performs taxonomy-guided claim classification, applies normalization to fixable invalid categories (Incorrectly-structured, Context-dependent, Incomplete), re-classifies the corrected claims, and verifies only the valid-claim set to ensure the score reflects response factuality rather than decomposition artifacts. We evaluate on 100 AskDocsAI long-form doctor replies and run decomposition/normalization on three self-hosted 14B models (ministral-3:14b, phi4:14b, deepseek-r1:14b), using a stronger self-hosted model for taxonomy labeling. MedScore-LMS stabilizes decomposition density to ≈1.46–1.71 claims/sentence and substantially improves validity, achieving 69.25\%–74.29\% Valid rate (e.g., reducing deepseek-r1:14b Incomplete from 54.30\% to 4.77\%), while producing high valid-only factuality scores of 0.9166–0.9387, narrowing the gap to proprietary settings under cost and privacy constraints. The code is available at https://github.com/ThatPham2000/medscore-lms.
+The decompose-then-verify paradigm is standard for evaluating factuality in long-form text generation. However, when applied to free-form medical answers, the final score is often dominated by the quality of claim decomposition rather than the actual content. This issue is especially pronounced with small language models (SLMs), which frequently produce taxonomy-violating claims– such as those that are context-dependent or incomplete–thereby injecting noise into the verification process and destabilizing scores. To address this, we propose MedScore-LMS, an enterprise-aligned evaluation pipeline explicitly optimized for self-hosted SLMs. Our framework introduces automated taxonomy-guided classification and applies targeted normalization to fixable invalid categories. By subsequently reclassifying these normalized outputs and restricting the verification stage exclusively to valid claims, the pipeline ensures that the final evaluation reflects true response factuality rather than intermediate invalid artifacts in the decomposition stage. We extensively evaluate this approach across three diverse medical datasets (AskDocsAI, MedLFQA, and ChatDoctoriCliniq) using a suite of 14-billion-parameter models (Ministral-3, Phi-4, and DeepSeek-R1) for extraction alongside a stronger self-hosted arbiter for taxonomy labeling. Experimental results indicate that MedScore-LMS effectively stabilizes claim density and significantly elevates valid claim rates to a consistent 69%–84% across all domains, notably reducing the incomplete claim rate of the DeepSeek-R1 model from 54% to approximately 5%. Ultimately, MedScore-LMS delivers a robust, privacy-preserving factuality scoring solution that bridges the performance gap with proprietary large language models while satisfying strict enterprise cost and data governance constraints. The code is available at https://github.com/ThatPham2000/medscore-lms.
 
 **Keywords:** Medical factuality evaluation; Decompose-then-verify; Small language models; Hallucination; Long-form medical question answering; Self-hosted LLM; Atomic facts decomposition; MedScore taxonomy; Interpretability; Enterprise privacy
 
@@ -54,20 +54,20 @@ python -m spacy download en_core_web_sm
 
 ```bash
 python med_score_small_llm.py \
-  --input_file /path/to/responses.jsonl \
-  --output_dir /path/to/out \
-  --decomposition_mode small_llm \
-  --decomposition_llm_provider ollama \
-  --decomposition_model_name deepseek-r1:14b \
-  --claim_quality_evaluation_llm_provider ollama \
-  --claim_quality_evaluation_model_name gpt-oss:20b \
-  --verification_mode provided \
-  --verification_llm_provider ollama \
-  --verification_model_name gpt-oss:20b \
-  --provided_evidence_path /path/to/evidence.jsonl
+  --input_file="/path/to/responses.jsonl" \
+  --output_dir="/path/to/out" \
+  --decomposition_mode="small_llm" \
+  --decomposition_llm_provider="ollama" \
+  --decomposition_model_name="deepseek-r1:14b" \
+  --claim_quality_evaluation_llm_provider="ollama" \
+  --claim_quality_evaluation_model_name="gpt-oss:20b" \
+  --verification_mode="provided" \
+  --verification_llm_provider="ollama" \
+  --verification_model_name="gpt-oss:20b" \
+  --provided_evidence_path="/path/to/evidence.jsonl"
 ```
 
-Optional: `--decomposition_server`, `--verification_server`, `--claim_quality_evaluation_server` for remote hosts; use `--decomposition_llm_provider openai` (and analogous flags) with `--openai_api_key` and a valid `--decomposition_server` base URL when using OpenAI-compatible APIs.
+Optional: `--decomposition_server`, `--verification_server`, `--claim_quality_evaluation_server` for remote hosts; use `--decomposition_llm_provider="openai"` (and analogous flags) with `--openai_api_key` and a valid `--decomposition_server` base URL when using OpenAI-compatible APIs.
 
 ### Staged runs
 
@@ -84,45 +84,6 @@ Optional: `--decomposition_server`, `--verification_server`, `--claim_quality_ev
 `--verification_mode` ∈ `internal` | `provided` (with `--provided_evidence_path`).
 
 > **Note:** The `__main__` block in `med_score_small_llm.py` may slice the dataset (e.g., a fixed index range) for experiments. For full-corpus evaluation, adjust or remove that slice in your fork.
-
----
-
-## Main results
-
-All numbers below are on **AskDocsAI** (**100** long-form samples). Standard deviations are shown in parentheses where applicable.
-
-### Decomposition claim statistics
-
-**Table — Claim counts after decomposition.** For **MedScore-LMS**, we report **post re-classification** outputs, i.e. the final claim set passed to verification. **0-claim rates are 0.00** for all methods.
-
-| Method | #claims/response | #claims/sentence |
-|--------|------------------|------------------|
-| FActScore (ministral-3:14b) | 49.78 (±17.82) | 7.51 (±2.98) |
-| FActScore (phi4:14b) | 39.25 (±15.25) | 5.92 (±1.79) |
-| FActScore (deepseek-r1:14b) | 28.48 (±12.16) | 4.30 (±3.37) |
-| MedScore (ministral-3:14b) | 15.16 (±5.78) | 2.29 (±1.45) |
-| MedScore (phi4:14b) | 25.32 (±9.99) | 3.82 (±2.53) |
-| MedScore (deepseek-r1:14b) | 8.60 (±3.09) | 1.30 (±0.69) |
-| MedScore (GPT-4o-mini) | 11.95 (±4.43) | 1.77 (±1.17) |
-| MedScore-LMS (ministral-3:14b) | 8.74 (±4.16) | 1.71 (±1.08) |
-| MedScore-LMS (phi4:14b) | 8.92 (±4.17) | 1.58 (±1.18) |
-| MedScore-LMS (deepseek-r1:14b) | 7.63 (±3.60) | 1.46 (±0.97) |
-
-### Final factuality scores (MedScore-LMS)
-
-**Table — MedScore-LMS scores on 100 AskDocsAI samples.** Evaluation uses the **original doctor answers** from the dataset as **reference evidence** when verifying generated medical claims.
-
-| Method | Score | Standard deviation |
-|--------|-------|----------------------|
-| MedScore-LMS (ministral-3:14b) | 0.9381 | 0.0991 |
-| MedScore-LMS (phi4:14b) | 0.9166 | 0.1117 |
-| MedScore-LMS (deepseek-r1:14b) | 0.9387 | 0.1156 |
-
-### Claim-quality taxonomy (automatic profiling)
-
-Automatic taxonomy profiling across decomposition frameworks shows that **MedScore-LMS** substantially increases the **Valid** claim rate for small language models, bringing it closer to **GPT-4o-mini** under the same MedScore taxonomy.
-
-![Claim quality statistics across decomposition frameworks](report_tools/claim_quality_statistic/claim_quality_statistic.png)
 
 ---
 
