@@ -72,6 +72,6 @@ def evaluate(file: str):
 
 
 if __name__ == '__main__':
-    file = '/Users/that.phamvan/my_ws/master/med-score-small-llm/run_result_with_full_data/output_small_llm_gemma3_12b/small_llm_provided_gpt_oss_med_score_output.jsonl'
+    file = 'small_llm_gemma3_12b/small_llm_provided_gpt_oss_med_score_output.jsonl'
 
     evaluate(file)
